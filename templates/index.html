@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>房间占用情况</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+
+    th, td {
+      border: 1px solid black;
+      padding: 8px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #f2f2f2;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f9f9f9;
+    }
+
+    button {
+      padding: 5px 10px;
+      border: none;
+      background-color: #888888;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #888888;
+    }
+
+    @media (max-width: 600px) {
+      table {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>房间占用情况</h1>
+
+  <table id="room-table">
+    <tr>
+      <th>房间号</th>
+      <th>房间信息</th>
+      <th>占用情况</th>
+      <th>操作</th>
+    </tr>
+  </table>
+
+  <script>
+    const API_ENDPOINT = 'http://localhost:2023/api/rooms'; // 修改为与后端路由匹配的地址
+
+    function updateRoomStatus() {
+      fetch(API_ENDPOINT, {
+        method: 'GET'
+      })
+        .then(response => response.json())
+        .then(data => {
+          const roomTable = document.getElementById('room-table');
+
+          // 清空除表头外的表格内容
+          while (roomTable.rows.length > 1) {
+            roomTable.deleteRow(1);
+          }
+
+          for (const room of data.rooms) {
+            const row = document.createElement('tr');
+
+            const roomNumberCell = document.createElement('td');
+            roomNumberCell.textContent = room.id; // 修改为room.id，即房间号
+            row.appendChild(roomNumberCell);
+
+            const roomDescriptionCell = document.createElement('td');
+            roomDescriptionCell.textContent = room.description; // 添加房间描述
+            row.appendChild(roomDescriptionCell);
+
+            const statusCell = document.createElement('td');
+            const statusElement = document.createElement('span');
+            statusElement.id = `room-${room.id}-status`;
+            statusElement.textContent = room.status;
+            statusCell.appendChild(statusElement);
+            row.appendChild(statusCell);
+
+            const actionCell = document.createElement('td');
+            const occupyButton = document.createElement('button');
+            const endOccupancyButton = document.createElement('button');
+
+            if (room.status === '空闲') {
+              occupyButton.textContent = '占用';
+              occupyButton.onclick = () => changeRoomStatus(room.id, '正在使用');
+              actionCell.appendChild(occupyButton);
+            } else {
+              endOccupancyButton.textContent = '结束占用';
+              endOccupancyButton.onclick = () => changeRoomStatus(room.id, '空闲');
+              actionCell.appendChild(endOccupancyButton);
+            }
+
+            row.appendChild(actionCell);
+
+            roomTable.appendChild(row);
+          }
+        })
+        .catch(error => {
+          console.error('获取房间占用情况失败:', error);
+        });
+    }
+
+    // 页面加载完成后立即获取一次房间占用情况
+    updateRoomStatus();
+
+    function changeRoomStatus(roomId, newStatus) {
+      const requestData = {
+        roomId: roomId,
+        status: newStatus
+      };
+
+      fetch(API_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log('房间占用情况更新成功:', data);
+          updateRoomStatus(); // 更新房间占用情况
+        })
+        .catch(error => {
+          console.error('更新房间占用情况失败:', error);
+        });
+    }
+
+    setInterval(updateRoomStatus, 5000);
+  </script>
+</body>
+</html>
